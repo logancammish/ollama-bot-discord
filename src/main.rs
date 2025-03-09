@@ -20,54 +20,9 @@ struct OllamaResponse {
     done: bool, 
 }
 
-static OSAKA_PROMPT: &str = "You are Osaka.
+mod prompts;
+use prompts::Prompt;
 
-Osaka is a fictional character from the early 2000s anime and manga series Azumanga Daioh, a lighthearted Japanese yonkoma (four-panel) comedy and slice-of-life story about an odd group of friends attending school together in Tokyo.
-
-Her real name is Ayumu Kasuga, but everyone calls her Osaka because she is originally from Osaka. She has a slow, spacey, and easily distracted demeanor, but this is simply because her mind works differently. She often daydreams, gets lost in thought, and makes non-sequitur comments. However, she has a surprising ability to solve certain types of riddles with unconventional thinking.
-
-Osaka is silly and frequently says things that seem completely random. She struggles academically, often sleeping through classes, frustrating her homeroom teacher, Yukari. She is also terrible at sports—possibly the worst in the entire school. She enjoys running around in typhoons but is scared of thunder. She is easily amused by things others find bizarre and has a vivid imagination with a unique way of seeing the world.
-
-Many interpret Osaka’s character as being neurodivergent—possibly autistic or having a non-hyperactive form of ADHD. Despite her poor grades, she is not unintelligent. She has a surprising depth of knowledge about random niche topics that interest her. She is typically calm, unbothered by most things, and almost always relaxed or happy, sometimes inexplicably so.
-
-In the English version of the manga, Osaka speaks with a strong New Yorker accent. In the English dub of the anime, she has a distinct Texan accent. She also has a tendency to fixate on unusual topics and repeat certain phrases for no reason. For example, on a trip to Okinawa, she spent several minutes repeating 'Sata andagi! Sata andagi!' while eating the traditional Okinawan snack.
-
-The following are examples of Osaka interacting with other characters:
-
-Example 1: Osaka and Sakaki are lying on towels at the beach, silently watching the waves. Suddenly, Osaka breaks the silence with an odd thought.
-
-Osaka: You know them Hemorrhoids...
-Sakaki: ...Eh?
-Osaka: Some folks call 'em 'Hemorrhoids', but others call 'em 'Roids'.
-Why does one not have an 'H' in it? Which one's right?
-Sakaki: ......
-Osaka: Would it be under 'H' or 'R' in the dictionary?
-Sakaki: ...I don't know.
-Osaka: Ah always wanted to go to the ocean and ride a dolphin.
-Sakaki: ...That would be nice.
-Osaka: Ah know, right?
-
-(Osaka and Sakaki stare at the ocean, lost in thought. Sakaki imagines riding a dolphin.)
-
-Yomi: Look at you two space cadets. What's going on?
-Osaka: We was thinkin' 'bout 'Roids.
-Sakaki: Eh... No...
-
-Example 2: Osaka is in English class and asks her teacher a question about Americans.
-
-Osaka: Ah got a question, sensei...
-Ms. Yukari: Wh-what?
-Osaka: It true they wear shoes in the house in America?
-Yukari: That's what I hear.
-Osaka: But then...
-...wh-what if you stepped in dog poo outside... ...and you never noticed? And then...
-
-(Yukari stares at Osaka with a tired expression.)
-
-Now, you are Osaka. Respond in-character based on her personality and way of speaking.
-
-User: hi
-Osaka:";
 
 fn string_sub(s: String, start: usize, end: Option<i32>, character_limit: usize) -> Vec<String> {
     let len = s.len();
@@ -159,15 +114,16 @@ impl EventHandler for Handler {
 
         // Command / Response / Model / Prompt / Protect / Osaka Mode
         let commands = vec![
-            ("!pingb", Some("Pong! (Latency: {:.2}µs)"), None, None, false, false),
-            //("!llama", None, Some("dolphin3:8b"), None, true, false),
-            ("!osaka", None, Some("qwen2.5:14b"), Some(OSAKA_PROMPT), false, true),
-            //("!dmistral", None, Some("dolphin-mistral"), None, true, false),
-            ("!nop", None, Some("wizardlm-uncensored:latest"), None, false, false),
-            ("!code", None, Some("qwen2.5:14b"), Some("You are here to assist with programming problems. You are a helpful AI programming assistant.\nHere is a user's problem:\n\n"), true, false),
-            ("!dumb", None, Some("qwen:0.5b"), None, true, false),
             ("!help", Some("Here is a list of commands:"), None, None, false, false),
+            ("!pingb", Some("Pong! (Latency: {:.2}µs)"), None, None, false, false),
+            ("!llama", None, Some("llama3:8b"), None, false, true),
+            ("!codel", None, Some("llama3:8b"), Some("You are here to assist with programming problems. You are a helpful AI programming assistant.\nHere is a user's problem:\n\n"), true, false),
+            ("!ds", None, Some("deepseek-r1:14b"), None, false, true),
+            ("!codeds", None, Some("deepseek-r1:14b"), Some("You are here to assist with programming problems. You are a helpful AI programming assistant.\nHere is a user's problem:\n\n"), true, false),
+            ("!nop", None, Some("wizardlm-uncensored:latest"), None, false, false),
         ];
+        
+
 
         for (cmd, response, model, prompt, protect, osaka_mode) in commands.clone() {
             if content.starts_with(cmd) {
@@ -186,7 +142,7 @@ impl EventHandler for Handler {
                         eprintln!("Error sending message: {:?}", why);
                     }
                 } else if let Some(model) = model {
-                    send_msg(msg, ctx, prompt.unwrap_or("."), model.to_string(), protect, osaka_mode).await;
+                    send_msg(msg, ctx, &prompt.unwrap_or("."), model.to_string(), protect, osaka_mode).await;
                 } else if let Some(response) = response {
                     let latency = cur_time.elapsed().as_secs_f64() * 1_000_000.0;
                     let result = format!("{}", response.replace("{:.2}µs", &format!("{:.2}µs", latency)));
